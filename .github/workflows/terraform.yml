@@ -20,6 +20,11 @@ jobs:
       # Securely pulled from GitHub Settings -> Secrets and Variables -> Actions
       TF_VAR_tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
 
+    # Required for Workload Identity Federation (OIDC tokens)
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - uses: actions/checkout@v4
         with:
