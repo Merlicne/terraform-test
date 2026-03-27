@@ -1,0 +1,79 @@
+name: "Terraform CI/CD (Dynamic)"
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform-apply:
+    runs-on: ubuntu-latest
+    
+    # Required if using Google Cloud Workload Identity Federation (WIF)
+    # --------------------------------------------------------------------------
+    # GLOBAL ENVIRONMENT VARIABLES (Replaces terraform.tfvars!)
+    # --------------------------------------------------------------------------
+    env:
+      TF_VAR_project_id: "infra-test-491414"
+      TF_VAR_region: "asia-southeast1"
+      TF_VAR_environment: "dev"
+      # Securely pulled from GitHub Settings -> Secrets and Variables -> Actions
+      TF_VAR_tailscale_auth_key: ${{ secrets.TAILSCALE_AUTH_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Required to compare against the previous commit!
+
+      # --------------------------------------------------------------------------
+      # 1. SETUP AUTHENTICATION (Workload Identity Federation)
+      # --------------------------------------------------------------------------
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/463350462854/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider'
+          service_account: 'terraform-ci@infra-test-491414.iam.gserviceaccount.com'
+
+      # --------------------------------------------------------------------------
+      # 2. INSTALL TERRAFORM
+      # --------------------------------------------------------------------------
+      - uses: hashicorp/setup-terraform@v3
+
+      # --------------------------------------------------------------------------
+      # 3. DYNAMIC DETECTION AND EXECUTION
+      # --------------------------------------------------------------------------
+      - name: Apply Modified Terraform Workspaces
+        run: |
+          # 1. Get a list of all directories that had files changed in this commit
+          CHANGED_DIRS=$(git diff --name-only HEAD~1 HEAD | xargs -I {} dirname {} | sort -u)
+          
+          echo "Found modified directories:"
+          echo "$CHANGED_DIRS"
+          echo "--------------------------------"
+
+          # 2. Loop through each changed directory
+          for DIR in $CHANGED_DIRS; do
+            
+            # 3. Check if the directory is a Terraform workspace
+            if [ -f "$DIR/main.tf" ]; then
+              echo "🚀 Running Terraform in: $DIR"
+              
+              # Automatically strip running numbers from the directory string!
+              # Example: 'gcp/02-network/vpc' becomes 'gcp/network/vpc'
+              STATE_PATH=$(echo $DIR | sed -E 's/[0-9]+-//g')
+              
+              cd $DIR
+              
+              # Dynamically inject the backend without backend.hcl files!
+              terraform init \
+                -backend-config="bucket=terraform_state_phann" \
+                -backend-config="prefix=terraform/state/$STATE_PATH"
+              
+              terraform apply -auto-approve
+              cd -
+            
+            else
+              echo "⏩ Skipping $DIR (Not a Terraform workspace)"
+            fi
+            
+          done
