@@ -1,6 +1,6 @@
 output "grafana_url" {
   description = "Access URL for Grafana Dashboard"
-  value       = "http://${google_dns_record_set.grafana.name}:3000"
+  value       = "http://${google_dns_record_set.grafana.name}"
 }
 
 output "prometheus_url" {
