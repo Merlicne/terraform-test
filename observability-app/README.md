@@ -6,9 +6,9 @@ Because it is completely decoupled from your Terraform infrastructure pipeline, 
 To deploy this observability stack to your Google Cloud VM manually, follow these 3 steps:
 
 ### 1. Copy these files to the VM
-Open your terminal on your laptop and securely copy this entire `config` folder over to the VM:
+Open your terminal on your laptop, navigate to the **`dev/terraform`** folder, and securely copy the entire application over to the VM:
 ```bash
-gcloud compute scp --recurse . dev-otel-gateway:~/config --project=infra-test-491414 --zone=asia-southeast1-a
+gcloud compute scp --recurse observability-app dev-otel-gateway: --project=infra-test-491414 --zone=asia-southeast1-a
 ```
 
 ### 2. SSH into the VM
@@ -18,9 +18,9 @@ gcloud compute ssh dev-otel-gateway --project=infra-test-491414 --zone=asia-sout
 ```
 
 ### 3. Start the Application
-Inside the VM, move into the folder and start `docker-compose`:
+Inside the VM, move into the new folder and start `docker-compose`:
 ```bash
-cd ~/config
+cd ~/observability-app
 
 # Container-Optimized OS requires you to run docker-compose using the official docker image
 docker run --rm \

@@ -51,14 +51,3 @@ resource "google_compute_instance" "otel_gateway" {
 
   tags = ["allow-internal"]
 }
-
-# ------------------------------------------------------------------------------
-# 2. Private DNS Record for Grafana
-# ------------------------------------------------------------------------------
-resource "google_dns_record_set" "grafana_record" {
-  name         = "grafana.${data.google_dns_managed_zone.private_zone.dns_name}"
-  managed_zone = data.google_dns_managed_zone.private_zone.name
-  type         = "A"
-  ttl          = 300
-  rrdatas      = [google_compute_instance.otel_gateway.network_interface.0.network_ip]
-}
