@@ -59,6 +59,12 @@ jobs:
           # 2. Loop through each changed directory
           for DIR in $CHANGED_DIRS; do
             
+            # Skip any directories that are NOT strictly inside the gcp/ architecture
+            if [[ "$DIR" != gcp/* ]]; then
+              echo "⏩ Skipping $DIR (Not part of the core GCP pipeline)"
+              continue
+            fi
+            
             # 3. Check if the directory is a Terraform workspace
             if [ -f "$DIR/main.tf" ]; then
               echo "🚀 Running Terraform in: $DIR"
