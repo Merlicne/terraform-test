@@ -1,7 +1,7 @@
 version: '3'
 services:
   otel-collector:
-    image: otel/opentelemetry-collector:latest
+    image: otel/opentelemetry-collector-contrib:latest
     command: ["--config=/etc/otel-collector.yaml"]
     volumes:
       - ./otel-collector.yaml:/etc/otel-collector.yaml
@@ -33,7 +33,7 @@ services:
       - "3100:3100"
 
   tempo:
-    image: grafana/tempo:latest
+    image: grafana/tempo:2.4.1
     user: root
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
@@ -48,6 +48,8 @@ services:
     user: root
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      # Disables gRPC streaming so Grafana strictly uses HTTP on port 3200
+      - GF_FEATURE_TOGGLES_DISABLE=traceQLStreaming
     volumes:
       - ./grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
       - grafana_data:/var/lib/grafana

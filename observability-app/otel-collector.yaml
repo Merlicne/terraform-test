@@ -2,21 +2,46 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: 0.0.0.0:4317
       http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+  # Move trace_id to attributes so Loki 3.0 treats it as filterable metadata
+  transform:
+    log_statements:
+      - context: log
+        statements:
+          - set(attributes["trace_id"], trace_id.string) where trace_id.string != ""
 
 exporters:
+  debug:
+    verbosity: detailed
+
   prometheus:
     endpoint: "0.0.0.0:8889"
+    
   otlp/tempo:
     endpoint: "tempo:4317"
     tls:
       insecure: true
 
+  # Native OTLP Log exporter for Loki 3.x
+  otlphttp/loki:
+    endpoint: "http://loki:3100/otlp"
+
 service:
   pipelines:
     metrics:
       receivers: [otlp]
-      exporters: [prometheus]
+      processors: [batch]
+      exporters: [prometheus, debug]
     traces:
       receivers: [otlp]
-      exporters: [otlp/tempo]
+      processors: [batch]
+      exporters: [otlp/tempo, debug]
+    logs:
+      receivers: [otlp]
+      processors: [batch, transform]
+      exporters: [otlphttp/loki, debug]
